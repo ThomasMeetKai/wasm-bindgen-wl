@@ -4,6 +4,64 @@
   </head>
   <body>
     <pre id='output'>Loading scripts...</pre>
+    <script src="wonderland.min.js?t={{timestamp}}"></script>
+    <script type="module">
+
+        import { simd, threads } from "./wasm-featuredetect.js";
+        import { load_app } from "./app_rs_loader.js";
+
+        function loadRuntime(simd, threads) {
+
+            let runtime = '{{ runtimeName }}' + (simd ? '-simd' : '') + (threads ? '-threads' : '')
+
+            const runtimeScript = document.createElement('script');
+            document.body.appendChild(runtimeScript);
+
+            const jsBundleScript = document.createElement('script');
+            jsBundleScript.id = 'bundle';
+            document.body.appendChild(jsBundleScript);
+
+            Module.preRun = function() {
+              addRunDependency('bundle');
+              jsBundleScript.onload = () => {
+                removeRunDependency('bundle');
+              };
+              jsBundleScript.src = "{{ settings.project.name }}-bundle.js?t={{timestamp}}";
+            }
+            runtimeScript.src = runtime + '.js';
+        }
+
+        WL.onXRSupported.push((type, supported) => {
+            const button = document.getElementById(type + '-button');
+            if(button) button.dataset.supported = supported;
+        })
+
+        WL.onSceneLoaded.push(() => {
+          load_app();
+        });
+
+        Promise.all([simd(), threads()]).then((support) => {
+            const simdSupported = support[0];
+            const threadsSupported = support[1];
+            if (simdSupported) {
+                console.log("WASM SIMD is supported");
+            } else {
+                console.warn("WASM SIMD is not supported");
+            }
+
+            if (threadsSupported) {
+              if (self.crossOriginIsolated) {
+                console.log("WASM Threads is supported");
+              } else {
+                console.warn("WASM Threads is supported, but the page is not crossOriginIsolated, therefore thread support is disabled.");
+              }
+            } else {
+              console.warn("WASM Threads is not supported");
+            }
+
+            loadRuntime(simdSupported, threadsSupported && self.crossOriginIsolated);
+        });
+    </script>
     <script>
      const wrap = method => {
          const og = console[method];

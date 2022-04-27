@@ -1,0 +1,31 @@
+#!/bin/bash
+
+# exit when any command fails
+set -e
+
+echo $OSTYPE
+project=BackendPOC.wlp
+url=http://localhost:8080
+wl_opts="--windowless -p -s -w"
+
+if [[ "$OSTYPE" == *"darwin"* ]]; then
+    wl_path='/Applications/WonderlandEditor.app/Contents/MacOS/WonderlandEditor'
+    browser='open'
+elif [[ "$OSTYPE" == "msys"* ]]; then
+    wl_path='/c/Program Files/Wonderland/WonderlandEngine/bin/WonderlandEditor'
+    browser='explorer'
+elif [[ "$OSTYPE" == "linux-gnu" ]]; then
+    wl_path='/usr/bin/WonderlandEditor'
+    browser='xdg-open'
+fi
+
+while getopts "ef:" opt; do
+case $opt in
+    f)  flavor="?flavor=$OPTARG"      ;;
+    e)  "$wl_path" --project $project; exit 0;;
+   \?)      echo "Invalid option: -$OPTARG" >&2      ;;
+esac
+done
+
+$browser $url$flavor
+"$wl_path" --project $project $wl_opts
